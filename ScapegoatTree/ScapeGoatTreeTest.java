@@ -1,28 +1,34 @@
 package ScapegoatTree;
 
-import java.util.Scanner;    
+import java.util.Scanner;
 
 /* Class SGTNode */
 class SGTNode<T> {
-    SGTNode right, left, parent;
+    SGTNode<T> right, left, parent;
     int value; 
+    T data;
 
     /* Constructor */
     public SGTNode(int val){
         value = val;
+        data = null;
+    }
+    public SGTNode(int val, T d) {
+    	value = val;
+    	data = d;
     }
 }
 
-
 /* Class ScapeGoatTree */
-class ScapeGoatTree<T> implements Tree {
-    private SGTNode root;
-    private int n, q; //n is the size of tree and q is overestimate of n
+class ScapeGoatTree<T> implements Tree<T> {
+    private SGTNode<T> root;
+    private int n, q, maxn; //n is the size of tree and q is overestimate of n, maxn is biggest tree size since rebalancing
 
     /* Constructor */    
     public ScapeGoatTree(){
         root = null;
-        n = 0;        
+        n = 0;
+        maxn = 0;
     }
 
     /* Function to check if tree is empty */
@@ -31,7 +37,7 @@ class ScapeGoatTree<T> implements Tree {
     } 
 
     /* Function to count number of nodes recursively */
-    private int size(SGTNode r) {
+    private int size(SGTNode<T> r) {
         if (r == null)
             return 0;
         else {
@@ -43,21 +49,23 @@ class ScapeGoatTree<T> implements Tree {
     }
 
     /* Functions to search for an element */
-    public boolean search(int val) {
+    public T find(int val) {
         return search(root, val);
     }
 
     /* Function to search for an element recursively */
-    private boolean search(SGTNode r, int val) {
-        boolean found = false;
-        while ((r != null) && !found)
+    private T search(SGTNode<T> r, int val) {
+    	//has been changed from bool's to T's
+        T found = null;
+        while ((r != null) && (found == null))
         {
             if (val < r.value)
                 r = r.left;
             else if (val > r.value)
                 r = r.right;
             else {
-                found = true;
+                found = r.data;
+                System.out.println("r.data == " + r.data);
                 break;
             }
             found = search(r, val);
@@ -69,26 +77,13 @@ class ScapeGoatTree<T> implements Tree {
     public int size() {
         return n;
     }
-
-    /* Function for inorder traversal */
-    public void inorder() {
-        inorder(root);
-    }
-
-    private void inorder(SGTNode r) {
-        if (r != null) {
-            inorder(r.left);
-            System.out.print(r.value +" ");
-            inorder(r.right);
-        }
-    }
-
+    
     /* Function for preorder traversal */
     public void preorder() {
         preorder(root);
     }
 
-    private void preorder(SGTNode r) {
+    private void preorder(SGTNode<T> r) {
         if (r != null) {
             System.out.print(r.value +" ");
             preorder(r.left);             
@@ -96,45 +91,37 @@ class ScapeGoatTree<T> implements Tree {
         }
     }
 
-    /* Function for postorder traversal */
-    public void postorder() {
-        postorder(root);
-    }
-
-    private void postorder(SGTNode r) {
-        if (r != null) {
-            postorder(r.left);             
-            postorder(r.right);
-            System.out.print(r.value +" ");
-        }
-    }     
-
     private static final int log32(int q) {
         final double log23 = 2.4663034623764317;
         return (int)Math.ceil(log23*Math.log(q));
     }
 
+    
     /* Function to insert an element */
-    public boolean add(int x) {
-
+    public void push(int x, Object data) {
         /* first do basic insertion keeping track of depth */
-        SGTNode u = new SGTNode(x);
-        int d = addWithDepth(u);
-        if (d > log32(q)) {
+        SGTNode<T> u = new SGTNode<T>(x, (T)data);
+        int d = addWithDepth(u); //add a node and take depth
+        System.out.println("d = " + d + ", log32(q) = " + log32(q));
+        if (d >= log32(q) && d != 0) {
+        	System.out.println("-->");
             /* depth exceeded, find scapegoat */
-            SGTNode w = u.parent;
+            SGTNode<T> w = u.parent;
             while (3*size(w) <= 2*size(w.parent))
                 w = w.parent;
             rebuild(w.parent);
         }
-        return d >= 0;
     }
 
     /* Function to rebuild tree from node u */
-    protected void rebuild(SGTNode u) {
+    protected void rebuild(SGTNode<T> u) {
+    	System.out.println("--> Yep, rebuilding...");
         int ns = size(u);
-        SGTNode p = u.parent;
-        SGTNode[] a = new SGTNode[ns];
+        SGTNode<T> p = u.parent;
+        
+        
+        @SuppressWarnings("unchecked")
+		SGTNode<T>[] a = (SGTNode<T>[])new SGTNode[ns];
         packIntoArray(u, a, 0);
         if (p == null) {
             root = buildBalanced(a, 0, ns);
@@ -148,10 +135,11 @@ class ScapeGoatTree<T> implements Tree {
             p.left = buildBalanced(a, 0, ns);
             p.left.parent = p;
         }
+        maxn = n;
     }
 
     /* Function to packIntoArray */
-    protected int packIntoArray(SGTNode u, SGTNode[] a, int i) {
+    protected int packIntoArray(SGTNode<T> u, SGTNode<T>[] a, int i) {
         if (u == null) {
             return i;
         }
@@ -163,7 +151,7 @@ class ScapeGoatTree<T> implements Tree {
     }
 
     /* Function to build balanced nodes */
-    protected SGTNode buildBalanced(SGTNode[] a, int i, int ns) {
+    protected SGTNode<T> buildBalanced(SGTNode<T>[] a, int i, int ns) {
         if (ns == 0)
             return null;
         
@@ -182,12 +170,13 @@ class ScapeGoatTree<T> implements Tree {
     }
 
     /* Function add with depth */
-    public int addWithDepth(SGTNode u) {
-        SGTNode w = root;
+    public int addWithDepth(SGTNode<T> u) {
+        SGTNode<T> w = root;
         if (w == null) {
             root = u;
             n++; 
             q++;
+            maxn = n > maxn ? n : maxn;
             return 0;
         }
 
@@ -220,19 +209,91 @@ class ScapeGoatTree<T> implements Tree {
 
         n++; 
         q++;
+        maxn = n > maxn ? n : maxn;
         return d;
     }
+
+    public T pop(int key) {
+		SGTNode<T> current = root;
+		SGTNode<T> parent = root;
+		boolean isLeftChild = true;
+		
+		while(current.value != key) {
+			parent = current;
+			if (key < current.value) {
+				isLeftChild = true;
+				current = current.left;
+			}
+			else {
+				isLeftChild = false;
+				current = current.right;
+			}
+			
+			if (current == null) return null;
+		}
+		T obj = (T)current.data;
+		if (current.left == null && current.right == null) {
+			//node we're about to delete has no child nodes
+			if (current == root) root = null;
+			else if (isLeftChild) parent.left = null;
+			else parent.right = null;
+		}
+		else if (current.right == null) {
+			//node we're about to delete has right child
+			if (current == root)
+				root = current.left;
+			else if(isLeftChild)
+				parent.left = current.left;
+			else
+				parent.right = current.left;
+		}
+		else if(current.left == null) {
+			//node we're about to delete has left child
+			if (current == root)
+				root = current.right;
+			else if (isLeftChild)
+				parent.left = current.right;
+			else
+				parent.right = current.right;
+		}
+		else {
+			//node has both children
+			SGTNode<T> successor = getSuccessor(current); //looking for successor
+			if (current == root) root = successor;
+			else if (isLeftChild) parent.left = successor;
+			else parent.right = successor;
+			successor.left = current.left;
+		}
+		n--; q--;
+		if (n < 2/3*maxn) rebuild(root);
+		return obj;
+	}
+    
+    protected SGTNode<T> getSuccessor(SGTNode<T> delNode) {
+    	SGTNode<T> successorParent = delNode;
+    	SGTNode<T> successor = delNode;
+    	SGTNode<T> current = delNode.right;
+		while(current != null) {
+			successorParent = successor;
+			successor = current;
+			current = current.left;
+		}
+		
+		if (successor != delNode.right) {
+			successorParent.left = successor.right;
+			successor.right = delNode.right;
+		}
+		return successor;
+	}
 }
 
- 
 public class ScapeGoatTreeTest{
     public static void main(String[] args) {                 
         Scanner scan = new Scanner(System.in);
 
         /* Creating object of ScapeGoatTree */
-        ScapeGoatTree sgt = new ScapeGoatTree(); 
-        System.out.println("ScapeGoat Tree Test\n");          
-        char ch;
+        ScapeGoatTree<Integer> sgt = new ScapeGoatTree<Integer>(); 
+        System.out.println("Clean ScapeGoat Tree Test\n");          
         
         /*  Perform tree operations  */
         do {
@@ -241,39 +302,36 @@ public class ScapeGoatTreeTest{
             System.out.println("2. count nodes");
             System.out.println("3. search"); 
             System.out.println("4. check empty");
+            System.out.println("5. Pop-the-Node");
 
             int choice = scan.nextInt();            
             switch (choice){
             case 1 : 
                 System.out.println("Enter integer element to insert");
-                sgt.add( scan.nextInt() );                     
+                sgt.push( scan.nextInt(), scan.nextInt());                     
                 break;                                                    
             case 2 : 
                 System.out.println("Nodes = "+ sgt.size());
                 break; 
             case 3 : 
                 System.out.println("Enter integer element to search");
-                System.out.println("Search result : "+ sgt.search( scan.nextInt() ));
+                System.out.println("Search result : "+ sgt.find( scan.nextInt() ));
                 break;                           
             case 4 :  
                 System.out.println("Empty status = "+ sgt.isEmpty());
-                break;             
+                break;      
+            case 5:
+            	System.out.println("Node to delete:");
+            	System.out.println("Node " + sgt.pop(scan.nextInt()) + " deleted.");
+            	break;
             default : 
                 System.out.println("Wrong Entry \n ");
                 break;           
             }
-
-            /*  Display tree  */ 
-            System.out.print("\nPost order : ");
-            sgt.postorder();
+            
             System.out.print("\nPre order : ");
             sgt.preorder();
-            System.out.print("\nIn order : ");
-            sgt.inorder();
-
-            System.out.println("\nDo you want to continue (Type y or n) \n");
-            ch = scan.next().charAt(0);                        
-        } while (ch == 'Y'|| ch == 'y');               
-        scan.close();
+                       
+        } while (true);
     }
 }
