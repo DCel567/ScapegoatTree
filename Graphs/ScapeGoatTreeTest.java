@@ -82,8 +82,7 @@ class ScapeGoatTree<T> implements Tree<T> {
         SGTNode<T> u = new SGTNode<T>(x, (T)data);
         int d = addWithDepth(u); //add a node and take depth
         System.out.println("d = " + d + ", log32(q) = " + log32(q));
-        if (d >= log32(q) && d != 0) {
-        	System.out.println("-->");
+        if (d > log32(q)) {
             /* depth exceeded, find scapegoat */
             SGTNode<T> w = u.parent;
             while (3*size(w) <= 2*size(w.parent))
@@ -94,10 +93,8 @@ class ScapeGoatTree<T> implements Tree<T> {
 
     /* Function to rebuild tree from node u */
     protected void rebuild(SGTNode<T> u) {
-    	System.out.println("--> Yep, rebuilding...");
         int ns = size(u);
         SGTNode<T> p = u.parent;
-        
         
         @SuppressWarnings("unchecked")
 		SGTNode<T>[] a = (SGTNode<T>[])new SGTNode[ns];
@@ -149,7 +146,7 @@ class ScapeGoatTree<T> implements Tree<T> {
     }
 
     /* Function add with depth */
-    public int addWithDepth(SGTNode<T> u) {
+    protected int addWithDepth(SGTNode<T> u) {
         SGTNode<T> w = root;
         if (w == null) {
             root = u;
